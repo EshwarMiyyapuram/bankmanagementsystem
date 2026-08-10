@@ -883,4 +883,4 @@ st.divider()
 
 st.caption(
     "Python Bank | Built with Python, JSON and Streamlit"
-)s
+)
