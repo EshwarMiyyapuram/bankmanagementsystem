@@ -19,6 +19,7 @@ class Bank:
         """Load bank data from JSON file."""
         try:
             if Path(cls.DATABASE).exists():
+
                 with open(cls.DATABASE, "r") as file:
                     data = json.load(file)
 
@@ -34,6 +35,7 @@ class Bank:
     def save_data(cls, data):
         """Save bank data to JSON file."""
         try:
+
             with open(cls.DATABASE, "w") as file:
                 json.dump(data, file, indent=4)
 
@@ -49,6 +51,7 @@ class Bank:
         characters = string.ascii_uppercase + string.digits
 
         while True:
+
             account_number = "".join(
                 random.choices(characters, k=8)
             )
@@ -61,8 +64,23 @@ class Bank:
         """Find account using account number and PIN."""
 
         for account in data:
+
             if (
                 account["accountNo"] == account_number
+                and account["pin"] == pin
+            ):
+                return account
+
+        return None
+
+    @staticmethod
+    def find_account_by_email_and_pin(data, email, pin):
+        """Find account using email and PIN."""
+
+        for account in data:
+
+            if (
+                account["email"] == email
                 and account["pin"] == pin
             ):
                 return account
@@ -97,7 +115,10 @@ data = st.session_state.bank_data
 # =========================================================
 
 st.title("Python Bank")
-st.caption("Banking Management System using Python and Streamlit")
+
+st.caption(
+    "Banking Management System using Python and Streamlit"
+)
 
 st.divider()
 
@@ -113,6 +134,7 @@ menu = st.sidebar.radio(
     [
         "Home",
         "Create Account",
+        "Get Account Number",
         "Deposit Money",
         "Withdraw Money",
         "Account Details",
@@ -140,18 +162,21 @@ if menu == "Home":
     col1, col2, col3 = st.columns(3)
 
     with col1:
+
         st.metric(
             "Total Accounts",
             total_accounts
         )
 
     with col2:
+
         st.metric(
             "Total Bank Balance",
             f"₹{total_balance:,.2f}"
         )
 
     with col3:
+
         st.metric(
             "System Status",
             "Online"
@@ -164,11 +189,13 @@ if menu == "Home":
     col1, col2 = st.columns(2)
 
     with col1:
+
         st.info(
             """
             Account Management
 
             - Create Account
+            - Get Account Number
             - View Account
             - Update Account
             - Delete Account
@@ -176,6 +203,7 @@ if menu == "Home":
         )
 
     with col2:
+
         st.success(
             """
             Banking Services
@@ -232,24 +260,40 @@ elif menu == "Create Account":
     if submit:
 
         if not name.strip():
-            st.error("Please enter your name.")
+
+            st.error(
+                "Please enter your name."
+            )
 
         elif age < 18:
+
             st.error(
                 "You must be at least 18 years old."
             )
 
         elif not email.strip() or "@" not in email:
+
             st.error(
                 "Please enter a valid email address."
             )
 
+        elif any(
+            account["email"].lower() == email.strip().lower()
+            for account in data
+        ):
+
+            st.error(
+                "An account with this email already exists."
+            )
+
         elif len(pin) != 4 or not pin.isdigit():
+
             st.error(
                 "PIN must contain exactly 4 digits."
             )
 
         elif pin != confirm_pin:
+
             st.error(
                 "PINs do not match."
             )
@@ -266,11 +310,17 @@ elif menu == "Create Account":
             )
 
             new_account = {
+
                 "name": name.strip(),
+
                 "age": int(age),
+
                 "email": email.strip(),
+
                 "pin": pin,
+
                 "accountNo": account_number,
+
                 "balance": 0.0
             }
 
@@ -282,11 +332,14 @@ elif menu == "Create Account":
                     "Account created successfully."
                 )
 
-                st.subheader("Account Information")
+                st.subheader(
+                    "Account Information"
+                )
 
                 col1, col2 = st.columns(2)
 
                 with col1:
+
                     st.write(
                         f"Name: {name}"
                     )
@@ -300,6 +353,7 @@ elif menu == "Create Account":
                     )
 
                 with col2:
+
                     st.write(
                         f"Account Number: {account_number}"
                     )
@@ -313,8 +367,96 @@ elif menu == "Create Account":
                 )
 
             else:
+
                 st.error(
                     "Unable to save account."
+                )
+
+
+# =========================================================
+# GET ACCOUNT NUMBER
+# =========================================================
+
+elif menu == "Get Account Number":
+
+    st.header("Get Account Number")
+
+    st.write(
+        "Enter your registered email and PIN "
+        "to find your account number."
+    )
+
+    with st.form("get_account_form"):
+
+        email = st.text_input(
+            "Registered Email"
+        )
+
+        pin = st.text_input(
+            "PIN",
+            type="password",
+            max_chars=4
+        )
+
+        submit = st.form_submit_button(
+            "Get Account Number"
+        )
+
+    if submit:
+
+        if not email.strip():
+
+            st.error(
+                "Please enter your email."
+            )
+
+        elif len(pin) != 4 or not pin.isdigit():
+
+            st.error(
+                "Please enter a valid 4-digit PIN."
+            )
+
+        else:
+
+            account = Bank.find_account_by_email_and_pin(
+                data,
+                email.strip(),
+                pin
+            )
+
+            if account:
+
+                st.success(
+                    "Account found successfully."
+                )
+
+                st.subheader(
+                    "Account Information"
+                )
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+
+                    st.write(
+                        f"Name: {account['name']}"
+                    )
+
+                    st.write(
+                        f"Email: {account['email']}"
+                    )
+
+                with col2:
+
+                    st.write(
+                        f"Account Number: {account['accountNo']}"
+                    )
+
+            else:
+
+                st.error(
+                    "No account found with the provided "
+                    "email and PIN."
                 )
 
 
@@ -352,16 +494,18 @@ elif menu == "Deposit Money":
 
         account = Bank.find_account(
             data,
-            account_number.strip(),
+            account_number.strip().upper(),
             pin
         )
 
         if not account:
+
             st.error(
                 "Invalid account number or PIN."
             )
 
         elif amount > 10000:
+
             st.error(
                 "Maximum deposit allowed is ₹10,000."
             )
@@ -382,6 +526,7 @@ elif menu == "Deposit Money":
                 )
 
             else:
+
                 st.error(
                     "Unable to save transaction."
                 )
@@ -421,16 +566,18 @@ elif menu == "Withdraw Money":
 
         account = Bank.find_account(
             data,
-            account_number.strip(),
+            account_number.strip().upper(),
             pin
         )
 
         if not account:
+
             st.error(
                 "Invalid account number or PIN."
             )
 
         elif amount > account["balance"]:
+
             st.error(
                 "Insufficient balance."
             )
@@ -451,6 +598,7 @@ elif menu == "Withdraw Money":
                 )
 
             else:
+
                 st.error(
                     "Unable to save transaction."
                 )
@@ -484,7 +632,7 @@ elif menu == "Account Details":
 
         account = Bank.find_account(
             data,
-            account_number.strip(),
+            account_number.strip().upper(),
             pin
         )
 
@@ -498,6 +646,10 @@ elif menu == "Account Details":
 
             st.success(
                 "Account found successfully."
+            )
+
+            st.subheader(
+                "Account Information"
             )
 
             col1, col2 = st.columns(2)
@@ -559,7 +711,7 @@ elif menu == "Update Account":
 
         account = Bank.find_account(
             data,
-            account_number.strip(),
+            account_number.strip().upper(),
             pin
         )
 
@@ -572,6 +724,7 @@ elif menu == "Update Account":
         else:
 
             st.session_state["update_account"] = account
+
             st.rerun()
 
     if "update_account" in st.session_state:
@@ -609,11 +762,13 @@ elif menu == "Update Account":
         if update:
 
             if not new_name.strip():
+
                 st.error(
                     "Name cannot be empty."
                 )
 
             elif not new_email.strip() or "@" not in new_email:
+
                 st.error(
                     "Enter a valid email."
                 )
@@ -622,6 +777,7 @@ elif menu == "Update Account":
                 len(new_pin) != 4
                 or not new_pin.isdigit()
             ):
+
                 st.error(
                     "PIN must contain exactly 4 digits."
                 )
@@ -629,9 +785,11 @@ elif menu == "Update Account":
             else:
 
                 account["name"] = new_name.strip()
+
                 account["email"] = new_email.strip()
 
                 if new_pin:
+
                     account["pin"] = new_pin
 
                 if Bank.save_data(data):
@@ -677,7 +835,7 @@ elif menu == "Delete Account":
 
         account = Bank.find_account(
             data,
-            account_number.strip(),
+            account_number.strip().upper(),
             pin
         )
 
@@ -725,4 +883,4 @@ st.divider()
 
 st.caption(
     "Python Bank | Built with Python, JSON and Streamlit"
-)
+)s
